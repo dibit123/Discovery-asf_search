@@ -4,10 +4,7 @@ from requests.exceptions import HTTPError
 import datetime
 import math
 
-from asf_search import __version__
 from asf_search.ASFSearchResults import ASFSearchResults
-from asf_search.ASFProduct import ASFProduct
-from asf_search.exceptions import ASFSearch4xxError, ASFSearch5xxError, ASFServerError
 from asf_search.constants import INTERNAL
 
 
@@ -81,6 +78,9 @@ def search(
 
     :return: ASFSearchResults(list) of search results
     """
+    from asf_search.ASFProduct import ASFProduct
+    from asf_search.exceptions import ASFSearch4xxError, ASFSearch5xxError, ASFServerError
+    from asf_search import __version__
 
     kwargs = locals()
     data = dict((k,v) for k,v in kwargs.items() if v is not None and v != '')

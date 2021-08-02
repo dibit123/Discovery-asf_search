@@ -1,12 +1,9 @@
 from dateutil.parser import parse
 import pytz
 
-from asf_search.search import search
 from asf_search.ASFSearchResults import ASFSearchResults
 from asf_search.ASFProduct import ASFProduct
-from asf_search.search.product_search import product_search
-from asf_search.constants import INTERNAL, PLATFORM
-from asf_search.exceptions import ASFSearchError, ASFBaselineError
+from asf_search.constants import PLATFORM
 
 
 precalc_platforms = [
@@ -17,42 +14,21 @@ precalc_platforms = [
     PLATFORM.JERS]
 
 
-def stack_from_product(
-        reference: ASFProduct,
-        strategy = None,
-        host: str = INTERNAL.SEARCH_API_HOST,
-        cmr_token: str = None,
-        cmr_provider: str = None) -> ASFSearchResults:
-    """
-    Finds a baseline stack from a reference ASFProduct
-
-    :param reference: Reference scene to base the stack from, and from which to calculate perpendicular/temporal baselines
-    :param strategy: If the requested reference can not be used to calculate perpendicular baselines, this sort function will be used to pick an alternative reference from the stack. 'None' implies that no attempt will be made to find an alternative reference.
-    :param host: SearchAPI host, defaults to Production SearchAPI. This option is intended for dev/test purposes.
-    :param cmr_token: EDL Auth Token for authenticated searches, see https://urs.earthdata.nasa.gov/user_tokens
-    :param cmr_provider: Custom provider name to constrain CMR results to, for more info on how this is used, see https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html#c-provider
-
-    :return: ASFSearchResults(dict) of search results
-    """
-
-    stack_params = get_stack_params(reference)
-    stack = search(**stack_params, host=host, cmr_token=cmr_token, cmr_provider=cmr_provider)
-    calc_temporal_baselines(reference, stack)
-    stack.sort(key=lambda product: product.properties['temporalBaseline'])
-
-    return stack
-
-
 def stack_from_id(
         reference_id: str,
+        start: None,
+        end: None,
         strategy = None,
-        host: str = INTERNAL.SEARCH_API_HOST,
+        host: str = None,
         cmr_token: str = None,
-        cmr_provider: str = None) -> ASFSearchResults:
+        cmr_provider: str = None
+) -> ASFSearchResults:
     """
     Finds a baseline stack from a reference product ID
 
     :param reference_id: Reference product to base the stack from, and from which to calculate perpendicular/temporal baselines
+    :param start: Earliest date to include in the stack. Default includes all time. If this date excludes the reference, it will not be included in the stack.
+    :param end: Latest date to include in the stack. Default includes all time. If this date excludes the reference, it will not be included in the stack.
     :param strategy: If the requested reference can not be used to calculate perpendicular baselines, this sort function will be used to pick an alternative reference from the stack. 'None' implies that no attempt will be made to find an alternative reference.
     :param host: SearchAPI host, defaults to Production SearchAPI. This option is intended for dev/test purposes.
     :param cmr_token: EDL Auth Token for authenticated searches, see https://urs.earthdata.nasa.gov/user_tokens
@@ -60,6 +36,9 @@ def stack_from_id(
 
     :return: ASFSearchResults(list) of search results
     """
+    from asf_search.search.product_search import product_search
+    from asf_search.exceptions import ASFSearchError
+
     reference_results = product_search(
         [reference_id],
         host=host,
@@ -70,10 +49,17 @@ def stack_from_id(
         raise ASFSearchError(f'Reference product not found: {reference_id}')
     reference = reference_results[0]
 
-    return stack_from_product(reference, host=host, cmr_token=cmr_token, cmr_provider=cmr_provider)
+    return reference.stack(
+        start=start,
+        end=end,
+        strategy=strategy,
+        host=host,
+        cmr_token=cmr_token,
+        cmr_provider=cmr_provider)
 
 
 def get_stack_params(reference: ASFProduct) -> dict:
+    from asf_search.exceptions import ASFBaselineError
 
     stack_params = {
         'processingLevel': [reference.properties['processingLevel']]
@@ -93,9 +79,9 @@ def get_stack_params(reference: ASFProduct) -> dict:
         #stack_params['lookDirection'] = [ref_scene.properties['lookDirection']]
         stack_params['relativeOrbit'] = [int(reference.properties['pathNumber'])]  # path
         if reference.properties['polarization'] in ['HH', 'HH+HV']:
-            stack_params['polarization'] = ['HH','HH+HV']
+            stack_params['polarization'] = ['HH', 'HH+HV']
         elif reference.properties['polarization'] in ['VV', 'VV+VH']:
-            stack_params['polarization'] = ['VV','VV+VH']
+            stack_params['polarization'] = ['VV', 'VV+VH']
         else:
             stack_params['polarization'] = [reference.properties['polarization']]
         ref_centroid = reference.centroid()
@@ -105,7 +91,10 @@ def get_stack_params(reference: ASFProduct) -> dict:
     raise ASFBaselineError(f'Reference product is not a pre-calculated baseline dataset, and not a known ephemeris-based dataset: {reference.properties["fileID"]}')
 
 
-def calc_temporal_baselines(reference: ASFProduct, stack: ASFSearchResults) -> None:
+def calc_temporal_baselines(
+        reference: ASFProduct,
+        stack: ASFSearchResults
+) -> None:
     """
     Calculates temporal baselines for a stack of products based on a reference scene and injects those values into the stack.
 

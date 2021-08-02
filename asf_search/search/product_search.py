@@ -7,7 +7,7 @@ from asf_search.constants import INTERNAL
 
 def product_search(
         product_list: Iterable[str],
-        host: str = INTERNAL.SEARCH_API_HOST,
+        host: str = None,
         cmr_token: str = None,
         cmr_provider: str = None
 ) -> ASFSearchResults:

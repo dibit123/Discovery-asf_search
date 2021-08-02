@@ -6,6 +6,10 @@ from asf_search import ASFSession
 
 class ASFSearchResults(UserList):
     def geojson(self):
+        """
+        Generates a geojson object describing the search results
+        :return:
+        """
         return {
             'type': 'FeatureCollection',
             'features': [product.geojson() for product in self]
@@ -14,7 +18,12 @@ class ASFSearchResults(UserList):
     def __str__(self):
         return json.dumps(self.geojson(), indent=2, sort_keys=True)
 
-    def download(self, path: str, session: ASFSession = None, processes=1) -> None:
+    def download(
+            self,
+            path: str,
+            session: ASFSession = None,
+            processes=1
+    ) -> None:
         """
         Iterates over each ASFProduct and downloads them to the specified path.
 
