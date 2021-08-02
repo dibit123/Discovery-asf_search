@@ -3,7 +3,6 @@ from multiprocessing import Pool
 import os.path
 import urllib.parse
 
-from asf_search.exceptions import ASFDownloadError
 from asf_search import ASFSession
 
 
@@ -49,6 +48,7 @@ def download_url(url: str, path: str, filename: str = None, session: ASFSession 
     :param session: The session to use, in most cases should be authenticated beforehand
     :return:
     """
+    from asf_search.exceptions import ASFDownloadError
     if filename is None:
         filename = os.path.split(urllib.parse.urlparse(url).path)[1]
 

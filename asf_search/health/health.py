@@ -1,7 +1,6 @@
 import requests
 import json
 
-import asf_search.constants
 
 def health(host: str = None) -> dict:
     """
@@ -10,6 +9,7 @@ def health(host: str = None) -> dict:
     :param host: SearchAPI host, defaults to Production SearchAPI. This option is intended for dev/test purposes.
     :return: Current configuration and status of subsystems
     """
+    import asf_search.constants
 
     if host is None:
         host = asf_search.INTERNAL.SEARCH_API_HOST
