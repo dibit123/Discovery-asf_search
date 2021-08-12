@@ -68,7 +68,7 @@ def download_url(url: str, path: str, filename: str = None, session: ASFSession 
     while 300 <= response.status_code <= 399:
         new_url = response.headers['location']
         print(f'Redirect to {new_url}')
-        if 'aws.amazon.com' in urllib.parse.urlparse(new_url).netloc:
+        if 'amazonaws.com' in urllib.parse.urlparse(new_url).netloc:
             # S3 detests the auth headers, don't use the established session
             response = requests.get(new_url, stream=True, allow_redirects=False)
         else:
